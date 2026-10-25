@@ -2,9 +2,13 @@
 define('ABSPATH','/');
 $opts = array('api_key'=>'test-not-a-real-key','demo'=>0,'model'=>'gpt-6-luna','daily_limit'=>200);
 $can_manage=true; $calls=0; $remote_status=200; $remote_json=array('status'=>'completed','output'=>array(array('type'=>'reasoning'),array('type'=>'message','content'=>array(array('type'=>'output_text','text'=>'CSH can help.')))));
-$routes=array(); $last_remote=null;
+$routes=array(); $last_remote=null; $connector=null; $connector_options=array(); $actions=array();
 function wp_parse_args($a,$b){return array_merge($b,$a);}
-function get_option($key,$default=array()){return $GLOBALS['opts'];}
+function get_option($key,$default=array()){return $key==='csh_study_companion' ? $GLOBALS['opts'] : ($GLOBALS['connector_options'][$key]??$default);}
+function update_option($key,$value,$autoload=null){$GLOBALS['connector_options'][$key]=$value;return true;}
+function wp_is_connector_registered($id){return $id==='openai' && $GLOBALS['connector']!==null;}
+function wp_get_connector($id){return wp_is_connector_registered($id)?$GLOBALS['connector']:null;}
+function do_action($name,...$args){$GLOBALS['actions'][]=$name;}
 function register_activation_hook(...$a){}
 function add_action(...$a){}
 function add_shortcode(...$a){}
@@ -58,4 +62,28 @@ $wpdb->counts=array();$opts['daily_limit']=2;
 CSH_Study_Companion::chat(request());CSH_Study_Companion::chat(request());$before=$calls;
 check(status(CSH_Study_Companion::chat(request()),429)&&$calls===$before,'daily cap blocks additional calls');
 $can_manage=false;$old=$opts;check(CSH_Study_Companion::sanitize(array('api_key'=>'changed'))['api_key']===$old['api_key'],'settings require administrator permissions');
+$can_manage=true;$opts['api_key']='';$opts['daily_limit']=200;$wpdb->counts=array();
+$connector=array('type'=>'ai_provider','authentication'=>array('method'=>'api_key','setting_name'=>'test_connector_key','env_var_name'=>'CSH_TEST_CONNECTOR_KEY','constant_name'=>'CSH_TEST_CONNECTOR_KEY'));
+$connector_options['test_connector_key']='connector-test-not-real';
+check(CSH_Study_Companion::key($opts)==='connector-test-not-real','existing WordPress connector authenticates without duplicating its key');
+check(strpos(CSH_Study_Companion::connection_status($opts),'WordPress Connectors')!==false && strpos(CSH_Study_Companion::connection_status($opts),'connector-test-not-real')===false,'administrator status identifies connection source without revealing credentials');
+CSH_Study_Companion::chat(request());
+check($last_remote['headers']['Authorization']==='Bearer connector-test-not-real','connector key used only for server-side OpenAI request');
+$success_payload=$remote_json;$remote_status=429;$remote_json=array('error'=>array('code'=>'insufficient_quota','message'=>'private provider detail connector-test-not-real'));
+CSH_Study_Companion::chat(request());
+$diagnostic=$connector_options['csh_assistant_connection_status'];
+check($diagnostic['http_status']===429 && strpos($diagnostic['message'],'billing')!==false && strpos(json_encode($diagnostic),'connector-test-not-real')===false,'administrator diagnostics explain quota errors without provider details or credentials');
+$remote_status=200;$remote_json=$success_payload;
+check(CSH_Study_Companion::sanitize(array('api_key'=>''))['api_key']==='','saving blank plugin key does not copy connector credentials');
+check($routes['/config']['callback']()->data===array('mode'=>'live'),'connector-backed public config does not disclose credentials');
+check(in_array('litespeed_control_set_nocache',$actions,true),'configuration bypasses LiteSpeed cache');
+$opts['api_key']='plugin-test-not-real';check(CSH_Study_Companion::key($opts)==='plugin-test-not-real','explicit plugin key retains priority');$opts['api_key']='';
+define('CSH_TEST_CONNECTOR_KEY','constant-test-not-real');
+check(CSH_Study_Companion::key($opts)==='constant-test-not-real','connector constant overrides database key');
+putenv('CSH_TEST_CONNECTOR_KEY=environment-test-not-real');
+check(CSH_Study_Companion::key($opts)==='environment-test-not-real','connector environment key overrides constant');putenv('CSH_TEST_CONNECTOR_KEY');
+$connector['authentication']['method']='none';check(CSH_Study_Companion::key($opts)==='','unsupported connector authentication fails closed');
+$connector=null;check($routes['/config']['callback']()->data===array('mode'=>'unavailable'),'missing connector disables AI when no plugin key exists');
+define('CSH_OPENAI_API_KEY','site-override-test-not-real');
+check(CSH_Study_Companion::key($opts)==='site-override-test-not-real','site configuration override remains authoritative');
 echo "ALL PHP CHECKS PASSED\n";

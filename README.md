@@ -4,7 +4,7 @@ A WordPress assistant for [CSH Consultancy](https://cshconsultancy.com), support
 
 ## Status
 
-Version 0.1.0 was installed and activated on cshconsultancy.com on 25 October 2026. Its hosted preview and consultation form were verified. At the last check, preview mode was enabled, no OpenAI API key was configured, and the public floating button was off.
+Version 0.1.2 was installed on cshconsultancy.com on 25 October 2026. The assistant recognizes the site's existing OpenAI connection under WordPress Connectors. Public activation is pending approval of **CSH Study Companion → OpenAI** under **Tools → Connector Approvals**, followed by a successful live reply test. The public floating button remains off.
 
 This repository contains the plugin's source code. WordPress settings, API keys, student information and the site's database are not stored here. Updating this repository does not automatically update the installed plugin.
 
@@ -53,7 +53,8 @@ The archive is created at `dist/csh-study-companion.zip`. Only the plugin's runt
 2. Go to **Plugins → Add New Plugin → Upload Plugin** and select the archive.
 3. Install and activate. For an update, review WordPress's replacement prompt for this plugin.
 4. Open **Settings → CSH Study Companion** and review the approved knowledge.
-5. Configure the API key privately in WordPress, or define `CSH_OPENAI_API_KEY` in `wp-config.php`. Never commit a real key.
+5. Connect OpenAI under **Settings → Connectors** (WordPress 7+) or configure the key privately under **Settings → CSH Study Companion**. The assistant automatically uses the shared OpenAI connector when its own key field is blank. A `CSH_OPENAI_API_KEY` constant overrides both. Never commit a real key.
+   If WordPress blocks the first request for connector approval, review **Tools → Connector Approvals** and allow only **CSH Study Companion → OpenAI**. The assistant does not bypass these permissions.
 6. Ensure the site's privacy notice explains AI processing, then disable preview mode when ready to test live AI.
 7. Add `[csh_assistant]` in a Shortcode block or enable the floating button. Retain the existing enquiry form.
 
@@ -61,13 +62,15 @@ The archive is created at `dist/csh-study-companion.zip`. Only the plugin's runt
 
 The plugin does not save chat transcripts or consultation form details. Live chat text is sent to OpenAI with `store: false`; provider and hosting retention policies still apply. Keys saved through the administrator form are stored in the WordPress database and must be protected in backups.
 
+The assistant reads shared connector credentials only on the server, following the connector's environment-variable, constant and database precedence. It does not copy them into its own settings. The administrator page shows the connection source and a timestamped, allowlisted diagnostic for the last provider request. Diagnostics contain no key, conversation text or raw provider response. Configuration requests tell LiteSpeed not to cache them; the live site's assistant REST paths are also excluded from LiteSpeed caching.
+
 Limits default to 200 API attempts per UTC day site-wide and 12 per minute per server-observed IP address. Counters persist in a WordPress table and use salted IP hashes. These are request limits, not a currency budget. Proxy settings may cause multiple visitors to share an IP limit. Expired counters are periodically pruned.
 
 ## Knowledge and verification
 
 `knowledge.txt` is a manually maintained starter drawn from CSH's [homepage](https://cshconsultancy.com/) and [services page](https://cshconsultancy.com/services/) on 25 October 2026. The administrator can edit the active knowledge in WordPress settings. Website changes are not automatically synchronized.
 
-The initial validation included five JavaScript flow tests, nineteen PHP checks in PHP 8.3 with mocked dependencies, and desktop and 390-pixel widget checks. Live OpenAI access and response quality, real database quota behavior and email delivery still require testing with the site's configuration.
+Validation for version 0.1.2 includes five JavaScript flow tests and thirty-two PHP checks in PHP 8.3 with mocked dependencies, covering connector precedence, permission-independent credential handling, private diagnostics and public responses without credentials. Desktop and 390-pixel widget layouts were checked previously. A live request reached WordPress's connector approval gate; successful OpenAI replies still require the pending approval and a further test. Consultation emails are prepared for visitors to send and require manual confirmation by CSH.
 
 ## Project layout
 
@@ -83,3 +86,4 @@ The initial validation included five JavaScript flow tests, nineteen PHP checks 
 - [Hostinger plugin installation](https://www.hostinger.com/tutorials/how-to-install-wordpress-plugins/)
 - [OpenAI API quickstart](https://developers.openai.com/api/docs/quickstart)
 - [WordPress REST routes](https://developer.wordpress.org/reference/functions/register_rest_route/)
+- [WordPress connector metadata](https://developer.wordpress.org/reference/functions/wp_get_connector/)

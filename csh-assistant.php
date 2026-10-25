@@ -2,7 +2,7 @@
 /**
  * Plugin Name: CSH Study Companion
  * Description: Study-abroad guidance, consultation requests and adviser handoff for CSH Consultancy.
- * Version: 0.1.0
+ * Version: 0.1.2
  * Requires at least: 6.5
  * Requires PHP: 8.1
  * Author: CSH Consultancy
@@ -37,7 +37,69 @@ final class CSH_Study_Companion {
     }
 
     public static function key($settings) {
-        return defined('CSH_OPENAI_API_KEY') ? trim((string) CSH_OPENAI_API_KEY) : trim($settings['api_key']);
+        return self::credentials($settings)['key'];
+    }
+
+    private static function credentials($settings) {
+        if (defined('CSH_OPENAI_API_KEY')) {
+            return array('key' => trim((string) CSH_OPENAI_API_KEY), 'source' => 'wp-config.php');
+        }
+        $saved = isset($settings['api_key']) && is_string($settings['api_key']) ? trim($settings['api_key']) : '';
+        if ($saved !== '') { return array('key' => $saved, 'source' => 'CSH Study Companion settings'); }
+
+        // Resolve the site's existing OpenAI connector on the server. Never copy its key into plugin settings.
+        if (function_exists('wp_is_connector_registered') && function_exists('wp_get_connector') && wp_is_connector_registered('openai')) {
+            $connector = wp_get_connector('openai');
+            $auth = $connector['authentication'] ?? array();
+            if (($connector['type'] ?? '') === 'ai_provider' && ($auth['method'] ?? '') === 'api_key') {
+                $value = !empty($auth['env_var_name']) ? getenv($auth['env_var_name']) : false;
+                if (!is_string($value) || trim($value) === '') {
+                    $value = !empty($auth['constant_name']) && defined($auth['constant_name']) ? constant($auth['constant_name']) : '';
+                }
+                if (!is_string($value) || trim($value) === '') {
+                    $value = !empty($auth['setting_name']) ? get_option($auth['setting_name'], '') : '';
+                }
+                if (is_string($value) && trim($value) !== '') {
+                    return array('key' => trim($value), 'source' => 'WordPress Connectors');
+                }
+            }
+        }
+        return array('key' => '', 'source' => '');
+    }
+
+    public static function connection_status($settings) {
+        $credentials = self::credentials($settings);
+        return $credentials['key'] !== ''
+            ? 'A server-side key is configured through ' . $credentials['source'] . '. Leave this field blank to keep using it.'
+            : 'No key configured. Connect OpenAI in Settings > Connectors or paste a project key here.';
+    }
+
+    private static function record_provider_status($result) {
+        // Store a small allowlisted diagnostic for administrators, never raw responses, keys or chat text.
+        $status = is_wp_error($result) ? 0 : (int) wp_remote_retrieve_response_code($result);
+        $messages = array(
+            'invalid_api_key' => 'OpenAI rejected the API key. Update the OpenAI connection in WordPress settings.',
+            'insufficient_quota' => 'OpenAI reports no available quota. Check API billing, credits and project limits.',
+            'credit_balance_exhausted' => 'The OpenAI prepaid credit balance is exhausted. Add API credits.',
+            'project_spend_limit_exceeded' => 'The OpenAI project has reached its spending limit.',
+            'organization_spend_limit_exceeded' => 'The OpenAI organization has reached its spending limit.',
+            'organization_usage_limit_exceeded' => 'The OpenAI account has reached its approved usage limit.',
+            'billing_hard_limit_reached' => 'The OpenAI account has reached its billing limit.',
+            'model_not_found' => 'The selected model is unavailable to this OpenAI project. Choose an accessible model.',
+            'rate_limit_exceeded' => 'OpenAI temporarily rate-limited the request. Try again shortly.',
+            'permission_denied' => 'The OpenAI key or project does not have permission for this request.',
+        );
+        if ($status === 200) {
+            $message = 'OpenAI accepted the request.';
+        } elseif ($status === 0) {
+            $message = 'WordPress could not reach OpenAI. Check hosting connectivity or try again.';
+        } else {
+            $payload = json_decode(wp_remote_retrieve_body($result), true);
+            $code = $payload['error']['code'] ?? '';
+            $type = $payload['error']['type'] ?? '';
+            $message = is_string($code) && isset($messages[$code]) ? $messages[$code] : (is_string($type) && isset($messages[$type]) ? $messages[$type] : 'OpenAI rejected the request. Check the API project configuration.');
+        }
+        update_option('csh_assistant_connection_status', array('http_status' => $status, 'message' => $message, 'checked_at' => gmdate('Y-m-d H:i:s') . ' UTC'), false);
     }
 
     public static function frame_url($embedded = false) {
@@ -82,10 +144,13 @@ final class CSH_Study_Companion {
         <p>Start in preview mode, review the knowledge below, then configure an API key to enable AI replies. Appointment requests are confirmed manually by CSH.</p>
         <?php settings_errors(); ?>
         <p><a class="button" target="_blank" rel="noopener" href="<?php echo esc_url(self::frame_url()); ?>">Open assistant preview</a></p>
+        <?php $connection_check = get_option('csh_assistant_connection_status', array()); if (!empty($connection_check['message'])) : ?>
+        <p id="csh-connection-status"><strong>Last OpenAI request:</strong> <?php echo esc_html($connection_check['message']); ?> (HTTP <?php echo (int) $connection_check['http_status']; ?>; <?php echo esc_html($connection_check['checked_at']); ?>)</p>
+        <?php endif; ?>
         <form method="post" action="options.php">
         <?php settings_fields('csh_assistant_group'); ?>
         <table class="form-table" role="presentation">
-            <tr><th><label for="csh-key">OpenAI API key</label></th><td><input id="csh-key" name="csh_study_companion[api_key]" type="password" value="" class="regular-text" autocomplete="new-password"><p class="description"><?php echo self::key($s) !== '' ? 'A server-side key is configured. Leave blank to keep it.' : 'No key configured. Paste a project key here; it is never sent to visitors.'; ?></p><label><input type="checkbox" name="csh_study_companion[clear_key]" value="1"> Remove the saved key</label><p class="description">A CSH_OPENAI_API_KEY constant in wp-config.php overrides the saved key. Protect database backups because the saved key is stored in WordPress settings.</p></td></tr>
+            <tr><th><label for="csh-key">OpenAI API key</label></th><td><input id="csh-key" name="csh_study_companion[api_key]" type="password" value="" class="regular-text" autocomplete="new-password"><p class="description"><?php echo esc_html(self::connection_status($s)); ?></p><label><input type="checkbox" name="csh_study_companion[clear_key]" value="1"> Remove the key saved in this plugin</label><p class="description">The wp-config.php override takes priority, followed by this plugin's saved key, then the site's OpenAI connection in Settings > Connectors. Removing this plugin's key does not disconnect WordPress Connectors. Use Preview mode to stop AI requests. Protect database backups containing saved keys.</p></td></tr>
             <tr><th><label for="csh-model">Model</label></th><td><input id="csh-model" class="regular-text" name="csh_study_companion[model]" value="<?php echo esc_attr($s['model']); ?>"><p class="description">Default: gpt-6-luna. The model must be available to your API project. API usage is billed separately by OpenAI.</p></td></tr>
             <tr><th>Preview mode</th><td><label><input type="checkbox" name="csh_study_companion[demo]" value="1" <?php checked($s['demo'], 1); ?>> Use clearly labelled sample replies; do not call OpenAI</label></td></tr>
             <tr><th>Floating chat button</th><td><label><input type="checkbox" name="csh_study_companion[floating]" value="1" <?php checked($s['floating'], 1); ?>> Show Ask CSH on public pages</label><p class="description">The existing site has a WhatsApp button. Check its position before enabling this button.</p></td></tr>
@@ -103,6 +168,7 @@ final class CSH_Study_Companion {
         register_rest_route('csh-assistant/v1', '/config', array(
             'methods' => 'GET', 'permission_callback' => '__return_true',
             'callback' => function () {
+                do_action('litespeed_control_set_nocache', 'CSH assistant configuration');
                 $s = self::settings();
                 $mode = !empty($s['demo']) ? 'demo' : (self::key($s) !== '' ? 'live' : 'unavailable');
                 $response = new WP_REST_Response(array('mode' => $mode), 200);
@@ -174,6 +240,7 @@ PROMPT;
             'headers' => array('Authorization' => 'Bearer ' . self::key($s), 'Content-Type' => 'application/json'),
             'body' => wp_json_encode(array('model' => $s['model'], 'instructions' => $instructions, 'input' => $input, 'store' => false, 'max_output_tokens' => 1400)),
         ));
+        self::record_provider_status($result);
         if (is_wp_error($result) || wp_remote_retrieve_response_code($result) !== 200) { return new WP_Error('csh_provider', 'The assistant is unavailable right now. Please try again or contact CSH directly.', array('status' => 502)); }
         $payload = json_decode(wp_remote_retrieve_body($result), true);
         if (!is_array($payload)) { return new WP_Error('csh_invalid_response', 'The assistant could not reply. Please contact CSH or try again.', array('status' => 502)); }
@@ -197,7 +264,7 @@ PROMPT;
 
     public static function floating() {
         if (is_admin() || empty(self::settings()['floating'])) { return; }
-        wp_enqueue_script('csh-assistant-widget', plugins_url('public/widget.js', __FILE__), array(), '0.1.0', true);
+        wp_enqueue_script('csh-assistant-widget', plugins_url('public/widget.js', __FILE__), array(), '0.1.2', true);
         wp_add_inline_script('csh-assistant-widget', 'window.CSHWidget=' . wp_json_encode(array('url' => self::frame_url(true))) . ';', 'before');
     }
 }

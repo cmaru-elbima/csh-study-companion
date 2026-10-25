@@ -4,7 +4,7 @@ A WordPress assistant for [CSH Consultancy](https://cshconsultancy.com), support
 
 ## Status
 
-Version 0.1.2 was installed on cshconsultancy.com on 25 October 2026. The assistant recognizes the site's existing OpenAI connection under WordPress Connectors. Public activation is pending approval of **CSH Study Companion → OpenAI** under **Tools → Connector Approvals**, followed by a successful live reply test. The public floating button remains off.
+Version 0.1.2 was installed on cshconsultancy.com on 25 October 2026. The assistant recognizes the site's existing OpenAI connection under WordPress Connectors, and **CSH Study Companion → OpenAI** access has been approved. A live request reached OpenAI and returned HTTP 429 because the prepaid API credit balance was exhausted. Add credits to the API account, then verify a successful reply before enabling public chat. Preview mode is off; the public floating button remains off.
 
 This repository contains the plugin's source code. WordPress settings, API keys, student information and the site's database are not stored here. Updating this repository does not automatically update the installed plugin.
 
@@ -70,7 +70,7 @@ Limits default to 200 API attempts per UTC day site-wide and 12 per minute per s
 
 `knowledge.txt` is a manually maintained starter drawn from CSH's [homepage](https://cshconsultancy.com/) and [services page](https://cshconsultancy.com/services/) on 25 October 2026. The administrator can edit the active knowledge in WordPress settings. Website changes are not automatically synchronized.
 
-Validation for version 0.1.2 includes five JavaScript flow tests and thirty-two PHP checks in PHP 8.3 with mocked dependencies, covering connector precedence, permission-independent credential handling, private diagnostics and public responses without credentials. Desktop and 390-pixel widget layouts were checked previously. A live request reached WordPress's connector approval gate; successful OpenAI replies still require the pending approval and a further test. Consultation emails are prepared for visitors to send and require manual confirmation by CSH.
+Validation for version 0.1.2 includes five JavaScript flow tests and thirty-two PHP checks in PHP 8.3 with mocked dependencies, covering connector precedence, private diagnostics and public responses without credentials. Desktop and 390-pixel widget layouts were checked previously. After explicit approval, a live request reached OpenAI and returned `credit_balance_exhausted`; successful reply testing remains pending API funding. Consultation emails are prepared for visitors to send and require manual confirmation by CSH.
 
 ## Project layout
 

@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>CSH Study Companion</title>
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+  <main class="shell">
+    <header class="brand"><a class="wordmark" href="https://cshconsultancy.com/" target="_blank" rel="noopener"><span class="monogram">CSH<span>✦</span></span><span>CSH CONSULTANCY<small>Your next chapter starts here.</small></span></a><span class="preview-label" id="status">Connecting…</span></header>
+    <div class="layout">
+      <section class="intro">
+        <div class="eyebrow">YOUR STUDY COMPANION</div>
+        <h1>A world of possibilities.<br><em>One place to start.</em></h1>
+        <p class="lede">Explore your options, plan a conversation with an adviser, or get help with your next step.</p>
+        <div class="paths" aria-label="Choose how we can help">
+          <button class="path selected" data-mode="explore" aria-pressed="true"><span class="path-number">01</span><span><strong>Explore studying abroad</strong><small>Courses, destinations & getting started</small></span><span aria-hidden="true">↗</span></button>
+          <button class="path" data-mode="consult" aria-pressed="false"><span class="path-number">02</span><span><strong>Plan a consultation</strong><small>Request a time with your CSH adviser</small></span><span aria-hidden="true">↗</span></button>
+          <button class="path" data-mode="support" aria-pressed="false"><span class="path-number">03</span><span><strong>I'm already a client</strong><small>Next steps, preparation & adviser support</small></span><span aria-hidden="true">↗</span></button>
+        </div>
+        <div class="human-note"><span class="spark">✦</span><p><strong>Guidance with a human behind it.</strong><br>Your adviser confirms appointments and helps with individual applications.</p></div>
+        <a class="site-link" href="https://cshconsultancy.com/services/" target="_blank" rel="noopener">Explore CSH services <span aria-hidden="true">↗</span></a>
+      </section>
+      <section class="chat" aria-labelledby="chat-title">
+        <div class="chat-head"><div class="avatar" aria-hidden="true">✦</div><div><h2 id="chat-title">Ask CSH</h2><p id="chat-subtitle">Study-abroad guidance, one step at a time</p></div><button id="reset" class="quiet" title="Start a new conversation" aria-label="Start a new conversation">↻</button></div>
+        <label class="mode-picker">I need help with <select id="mode-select"><option value="explore">Studying abroad</option><option value="consult">A consultation</option><option value="support">Client support</option></select></label>
+        <div class="messages" id="messages" role="log" aria-live="polite" aria-relevant="additions text"></div>
+        <div class="prompts" id="prompts" aria-label="Suggested questions"></div>
+        <div class="actions"><button id="consultation" class="action">Request a consultation</button><a class="action" href="https://wa.me/447867015373?text=Hello%20CSH%20Consultancy%2C%20I%20would%20like%20study%20abroad%20guidance." target="_blank" rel="noopener">Talk on WhatsApp ↗</a></div>
+        <form id="chat-form" class="composer"><label class="sr-only" for="question">Your message</label><textarea id="question" rows="2" maxlength="1400" placeholder="Ask about your next step…" required disabled></textarea><button id="send" type="submit" aria-label="Send message" disabled>↑</button></form>
+        <div id="consent-wrap" hidden><label class="consent"><input id="consent" type="checkbox"> I agree to send this conversation to OpenAI to generate AI replies.</label></div>
+        <p class="disclosure" id="disclosure">Loading assistant settings…</p>
+      </section>
+    </div>
+    <footer><span>FROM CONSULTATION TO CAMPUS</span><a href="https://cshconsultancy.com/chat-with-csh/" target="_blank" rel="noopener">Send an enquiry ↗</a></footer>
+  </main>
+  <dialog id="booking"><form id="booking-form"><div class="dialog-heading"><div><div class="eyebrow">LET'S TALK</div><h2>Request a consultation</h2></div><button type="button" class="quiet" id="close-booking" aria-label="Close consultation form">×</button></div><p>Choose a preferred time. Your adviser will reply to confirm availability.</p><label>Your name<input name="name" autocomplete="name" maxlength="100" required></label><label>Email address<input name="email" type="email" autocomplete="email" maxlength="160" required></label><div class="form-grid"><label>Preferred date<input name="date" type="date" required></label><label>Preferred time<input name="time" type="time" required></label></div><label>Your time zone<input name="timezone" id="timezone" maxlength="100" required></label><label>What would you like to discuss?<textarea name="topic" maxlength="500" rows="3" placeholder="For example, a master's degree in Canada" required></textarea></label><p class="booking-note">This opens a draft in your email app. Review and send it yourself. Your appointment is confirmed only when CSH replies.</p><button class="primary" type="submit">Prepare email request ↗</button><p id="booking-result" role="status"></p><a class="site-link" href="https://cshconsultancy.com/chat-with-csh/" target="_blank" rel="noopener">Prefer the website enquiry form? ↗</a></form></dialog>
+  <script type="module" src="app.js"></script>
+</body>
+</html>

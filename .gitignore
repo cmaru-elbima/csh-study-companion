@@ -1,0 +1,23 @@
+# Dependencies and generated packages
+node_modules/
+dist/
+coverage/
+*.log
+
+# Credentials and private configuration
+.env
+.env.*
+!.env.example
+wp-config.php
+auth.json
+*.pem
+*.key
+*.p12
+*.sql
+*.sqlite*
+
+# Local editor and OS files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

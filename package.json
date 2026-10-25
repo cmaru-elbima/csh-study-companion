@@ -1,0 +1,16 @@
+{
+  "name": "csh-study-companion",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "WordPress study-abroad assistant for CSH Consultancy",
+  "scripts": {
+    "preview": "node preview.mjs",
+    "test": "node --test tests/flows.test.mjs",
+    "test:php": "php tests/backend.php",
+    "check": "node --check public/app.js && node --check public/widget.js && node --check public/demo.js && node --check preview.mjs",
+    "package": "node scripts/package.mjs"
+  },
+  "engines": { "node": ">=22" },
+  "devDependencies": { "jszip": "3.10.1" }
+}
